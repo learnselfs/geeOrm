@@ -3,8 +3,5 @@
 // @Desc
 package main
 
-import "github.com/learnselfs/geeOrm/test"
-
 func main() {
-	test.Main()
 }

@@ -17,10 +17,6 @@ this is default orm(object relational mapping) project
 <br />
 
 <p align="center">
-  <a href="https://github.com/learnselfs/geeOrm/">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
-
   <h3 align="center"> gee orm </h3>
   <p align="center">
     <br />

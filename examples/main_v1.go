@@ -1,7 +1,7 @@
-// Package test @Author Bing
+// Package main @Author Bing
 // @Date 2023/11/16 16:25:00
 // @Desc
-package test
+package examples
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ type user struct {
 	pass string
 }
 
-func Main() {
+func main() {
 	engine := core.NewEngine("mysql", "db", "db", "192.168.101.138", "db", 30666)
 	session, err := engine.GetSession()
 	if err != nil {

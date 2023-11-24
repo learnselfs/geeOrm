@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/learnselfs/geeOrm/dialect"
 	"github.com/learnselfs/geeOrm/utils"
 )
 
@@ -43,7 +44,7 @@ func (e *Engine) Close() error {
 	return nil
 }
 
-func NewEngine(dbType, username, password, hostname, database string, port int) *Engine {
+func NewEngine(dbType, username, password, hostname, database string, port int, dialect dialect.Dialect) *Engine {
 	dns := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", username, password, hostname, port, database)
 	e := &Engine{
 		dbType:   dbType,
@@ -59,7 +60,7 @@ func NewEngine(dbType, username, password, hostname, database string, port int) 
 		utils.ErrorLog.Printf("%s", err)
 		return nil
 	}
-	e.session = newSession(db)
+	e.session = NewSession(db, dialect)
 
 	return e
 }
