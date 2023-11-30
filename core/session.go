@@ -5,12 +5,14 @@ package core
 
 import (
 	"database/sql"
+	"github.com/learnselfs/geeOrm/clause"
 	"github.com/learnselfs/geeOrm/dialect"
 	"github.com/learnselfs/geeOrm/utils"
 	"strings"
 )
 
 type Session struct {
+	clause  clause.Clause
 	db      *sql.DB
 	dialect dialect.Dialect
 	schema  *Schema
@@ -18,13 +20,13 @@ type Session struct {
 	args    []interface{}
 }
 
-func (s *Session) DB() *sql.DB {
-	return s.db
-}
-
 func (s *Session) Clear() {
 	s.sql.Reset()
 	s.args = make([]interface{}, 0)
+}
+
+func (s *Session) DB() *sql.DB {
+	return s.db
 }
 
 func (s *Session) Row(f string, v ...any) *Session {

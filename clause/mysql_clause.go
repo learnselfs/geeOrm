@@ -4,7 +4,6 @@
 package clause
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -17,10 +16,14 @@ type Clause struct {
 	whereArgs      []string
 	whereCondition []string
 	orderBy        string
+	sql            strings.Builder
+	args           []string
 }
 
 func (c Clause) Clear() {
 	c.whereArgs = make([]string, 0)
+	c.sql.Reset()
+	c.args = make([]string, 0)
 }
 
 const (
@@ -108,7 +111,7 @@ func (c *Clause) condition(condition, args string) *Clause {
 	return c
 }
 
-func (c *Clause) Query() string {
+func (c *Clause) Query() (strings.Builder, []string) {
 	var (
 		fields string
 		values string
@@ -119,30 +122,51 @@ func (c *Clause) Query() string {
 	switch c.method {
 	case insert_method:
 		// insert into #{c.table}(#{c.fields}) values(#{c.fields});}
-		return fmt.Sprintf("insert into %s(%s) values(%s);", c.table, fields, values)
+		c.sql.WriteString("insert into %s(%s) values(%s);")
+		args := []string{c.table, fields, values}
+		c.args = append(c.args, args...)
+		//return fmt.Sprintf("insert into %s(%s) values(%s);", c.table, fields, values)
 	case delete_method:
 		// delete from #{c.table} where #{c.whereArgs}
 		if len(c.whereArgs) > 0 {
-			return fmt.Sprintf("delete from %s where %s;", c.table, args)
+
+			c.sql.WriteString("delete from %s where %s;")
+			args := []string{c.table, args}
+			c.args = append(c.args, args...)
+			//return fmt.Sprintf("delete from %s where %s;", c.table, args)
 		}
-		return fmt.Sprintf("delete from %s;", c.table)
+		c.sql.WriteString("delete from %s;")
+		c.args = append(c.args, c.table)
+		//return fmt.Sprintf("delete from %s;", c.table)
 
 	case select_method:
 		//
 		if len(c.whereArgs) > 0 {
-			return fmt.Sprintf("select %s from %s where %s;", fields, c.table, args)
+			c.sql.WriteString("select %s from %s where %s;")
+			args := []string{fields, c.table, args}
+			c.args = append(c.args, args...)
+			//return fmt.Sprintf("select %s from %s where %s;", fields, c.table, args)
 		}
-		return fmt.Sprintf("select %s from %s;", fields, c.table)
+		c.sql.WriteString("select %s from %s;")
+		args := []string{fields, c.table}
+		c.args = append(c.args, args...)
+		//return fmt.Sprintf("select %s from %s;", fields, c.table)
 
 	case update_method:
 		//
 		setArgs := c.parseUpdate()
 		if len(setArgs) > 0 {
-			return fmt.Sprintf("update %s set %s where %s;", c.table, setArgs, args)
+			c.sql.WriteString("update %s set %s where %s;")
+			args := []string{c.table, setArgs, args}
+			c.args = append(c.args, args...)
+			//return fmt.Sprintf("update %s set %s where %s;", c.table, setArgs, args)
 		}
-		return fmt.Sprintf("update %s set %s;", c.table, setArgs)
+		c.sql.WriteString("update %s set %s;")
+		args := []string{c.table, setArgs}
+		c.args = append(c.args, args...)
+		//return fmt.Sprintf("update %s set %s;", c.table, setArgs)
 	}
-	return ""
+	return c.sql, c.args
 }
 
 func (c *Clause) parseSql() (string, string, string) {

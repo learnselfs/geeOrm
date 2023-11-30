@@ -23,7 +23,6 @@ func (s *Session) Schema() *Schema {
 	return s.schema
 }
 
-// create table tableName ( column type tag ,);
 func (s *Session) Create() error {
 	table := s.Schema()
 	args := make([]string, 0)

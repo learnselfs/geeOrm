@@ -17,7 +17,7 @@ type Schema struct {
 	ColumnMap   map[string]*schema.Column
 }
 
-func NewSchema(model interface{}) *Schema {
+func newSchema(model interface{}) *Schema {
 	t := reflect.Indirect(reflect.ValueOf(model)).Type()
 	return &Schema{model: model, Name: t.Name(), ColumnNames: make([]string, 0), ColumnMap: make(map[string]*schema.Column)}
 }
@@ -27,7 +27,7 @@ func (s *Schema) Column(name string) *schema.Column {
 }
 
 func Parser(model interface{}, d dialect.Dialect) *Schema {
-	S := NewSchema(model)
+	S := newSchema(model)
 	t := reflect.TypeOf(S.model)
 	for i := 0; i < t.NumField(); i++ {
 		p := t.Field(i)
