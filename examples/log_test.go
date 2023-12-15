@@ -1,7 +1,7 @@
 // Package test @Author Bing
 // @Date 2023/11/9 14:07:00
 // @Desc
-package main
+package examples
 
 import (
 	"github.com/learnselfs/geeOrm/utils"
