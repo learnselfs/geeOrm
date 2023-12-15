@@ -4,196 +4,254 @@
 package clause
 
 import (
+	"fmt"
+	"github.com/learnselfs/geeOrm/utils"
 	"strings"
 )
 
-type Clause struct {
+func init() {
+	RegisterClause("mysql", &ClauseMysql{})
+}
+
+var _ Clause = (*ClauseMysql)(nil)
+
+type ClauseMysql struct {
 	method         int
 	table          string
 	fields         []string
 	values         []string
 	limit          string
-	whereArgs      []string
+	whereFields    []string
+	whereValues    []string
 	whereCondition []string
+	whereArgs      []string
 	orderBy        string
 	sql            strings.Builder
-	args           []string
+	args           []any
 }
 
-func (c Clause) Clear() {
+func (c *ClauseMysql) SetTable(table string) {
+	c.table = table
+}
+
+func (c *ClauseMysql) Clear() {
 	c.whereArgs = make([]string, 0)
+	c.values = make([]string, 0)
+	c.fields = make([]string, 0)
 	c.sql.Reset()
-	c.args = make([]string, 0)
+	c.args = make([]any, 0)
 }
 
-const (
-	insert_method int = iota
-	delete_method
-	select_method
-	update_method
-)
+func (c *ClauseMysql) Insert(s interface{}) Clause {
+	c.method = utils.InsertMethod
+	var fields []string
+	var values []string
+	fields, values = utils.ParseStructFieldValue(s)
+	//v := reflect.ValueOf(s)
+	//for i := 0; i < v.NumField(); i++ {
+	//	if reflect.DeepEqual(v.Field(i).Interface(), reflect.Zero(v.Field(i).Type()).Interface()) {
+	//		continue
+	//	}
+	//
+	//	fields = append(fields, v.Type().Field(i).Name)
+	//	values = append(values, v.Field(i).String())
+	//
+	//}
+	c.fields = fields
+	c.values = values
 
-func (c *Clause) Insert(table string, fields []string, values []string) *Clause {
-	c.method = insert_method
-	c.table = table
+	return c
+}
+
+func (c *ClauseMysql) Delete() Clause {
+	c.method = utils.DeleteMethod
+	return c
+}
+
+func (c *ClauseMysql) Select(fields []string) Clause {
+	c.method = utils.SelectMethod
+	c.fields = fields
+	return c
+}
+
+func (c *ClauseMysql) Update(s interface{}) Clause {
+	c.method = utils.UpdateMethod
+	var fields []string
+	var values []string
+	fields, values = utils.ParseStructFieldValueUnsafe(s)
+	fmt.Println(fields, values)
 	c.fields = fields
 	c.values = values
 	return c
 }
 
-func (c *Clause) Delete(table string) *Clause {
-	c.method = delete_method
-	c.table = table
+func (c *ClauseMysql) Where(whereFields string, whereValues string) Clause {
+	c.whereFields = append(c.whereFields, whereFields)
+	c.whereValues = append(c.whereValues, whereValues)
+	c.condition(whereFields, "=", whereValues)
 	return c
 }
 
-func (c *Clause) Select(table string, fields []string) *Clause {
-	c.method = select_method
-	c.table = table
-	c.fields = fields
+func (c *ClauseMysql) And(field, condition, value string) Clause {
+	c.special("and", field, condition, value)
 	return c
 }
 
-func (c *Clause) Update(table string, fields []string, values []string) *Clause {
-	c.method = update_method
-	c.table = table
-	c.fields = fields
-	c.values = values
+func (c *ClauseMysql) Not(field, condition, value string) Clause {
+	c.special("not", field, condition, value)
 	return c
 }
 
-func (c *Clause) Where(args string) *Clause {
-	c.whereArgs = []string{args}
+func (c *ClauseMysql) Or(field, condition, value string) Clause {
+	c.special("or", field, condition, value)
 	return c
 }
 
-func (c *Clause) And(args string) *Clause {
-	c.condition("and", args)
+func (c *ClauseMysql) In(field, value string) Clause {
+	c.condition(field, "in", value)
 	return c
 }
 
-func (c *Clause) Not(args string) *Clause {
-	c.condition("not", args)
+func (c *ClauseMysql) Between(field, value string) Clause {
+	c.special("between", field, "and", value)
 	return c
 }
 
-func (c *Clause) Or(args string) *Clause {
-	c.condition("or", args)
+func (c *ClauseMysql) Like(field, value string) Clause {
+	c.condition(field, "like", value)
 	return c
 }
 
-func (c *Clause) In(field, value string) *Clause {
-	c.special(field, "in", value)
+func (c *ClauseMysql) special(specialCondition, field, condition, value string) Clause {
+	c.whereArgs = append(c.whereArgs, specialCondition)
+	c.condition(field, condition, value)
+	return c
+}
+func (c *ClauseMysql) condition(field, condition, value string) Clause {
+	c.whereCondition = append(c.whereCondition, condition)
+	c.whereFields = append(c.whereFields, field)
+	c.whereValues = append(c.whereValues, value)
+	field = utils.EscapeQuote(field)
+	value = utils.EscapeQuote(value)
+	arg_ := utils.AddString([]string{"`", field, "`"})
+	value_ := utils.AddString([]string{"'", value, "'"})
+	c.whereArgs = append(c.whereArgs, utils.AddString([]string{arg_, " ", condition, " ", value_}))
 	return c
 }
 
-func (c *Clause) Between(field, value string) *Clause {
-	c.whereArgs = append(c.whereArgs, "between")
-	c.special(field, "and", value)
-	return c
-}
-
-func (c *Clause) Like(field, value string) *Clause {
-	c.special(field, "like", value)
-	return c
-}
-
-func (c *Clause) special(field, condition, value string) *Clause {
-	c.whereArgs = append(c.whereArgs, field)
-	c.whereArgs = append(c.whereArgs, condition)
-	c.whereArgs = append(c.whereArgs, value)
-	return c
-}
-
-func (c *Clause) condition(condition, args string) *Clause {
-	c.whereArgs = append(c.whereArgs, condition)
-	c.whereArgs = append(c.whereArgs, args)
-	return c
-}
-
-func (c *Clause) Query() (strings.Builder, []string) {
+func (c *ClauseMysql) Query() (strings.Builder, []any) {
+	defer c.Clear()
 	var (
 		fields string
 		values string
-		args   string
 	)
-	fields, values, args = c.parseSql()
-	defer c.Clear()
+	fields, values = c.parseSql()
 	switch c.method {
-	case insert_method:
+	case utils.InsertMethod:
 		// insert into #{c.table}(#{c.fields}) values(#{c.fields});}
-		c.sql.WriteString("insert into %s(%s) values(%s);")
-		args := []string{c.table, fields, values}
+		c.sql.WriteString("insert into `%s`(%s) values(%s);")
+		args := []any{c.table, fields, values}
 		c.args = append(c.args, args...)
 		//return fmt.Sprintf("insert into %s(%s) values(%s);", c.table, fields, values)
-	case delete_method:
+
+	case utils.DeleteMethod:
 		// delete from #{c.table} where #{c.whereArgs}
 		if len(c.whereArgs) > 0 {
-
-			c.sql.WriteString("delete from %s where %s;")
-			args := []string{c.table, args}
-			c.args = append(c.args, args...)
+			args := c.ParseWhere()
+			c.sql.WriteString("delete from `%s` where %s;")
+			c.args = []any{c.table}
+			c.args = append(c.args, args)
+			break
 			//return fmt.Sprintf("delete from %s where %s;", c.table, args)
 		}
-		c.sql.WriteString("delete from %s;")
+
+		c.sql.WriteString("delete from `%s`;")
 		c.args = append(c.args, c.table)
 		//return fmt.Sprintf("delete from %s;", c.table)
 
-	case select_method:
+	case utils.SelectMethod:
 		//
 		if len(c.whereArgs) > 0 {
-			c.sql.WriteString("select %s from %s where %s;")
-			args := []string{fields, c.table, args}
-			c.args = append(c.args, args...)
+			args := c.ParseWhere()
+			c.sql.WriteString("select %s from `%s` where %s;")
+			c.args = append(c.args, fields, c.table, args)
 			//return fmt.Sprintf("select %s from %s where %s;", fields, c.table, args)
+			break
 		}
+
 		c.sql.WriteString("select %s from %s;")
-		args := []string{fields, c.table}
+		args := []any{fields, c.table}
 		c.args = append(c.args, args...)
 		//return fmt.Sprintf("select %s from %s;", fields, c.table)
 
-	case update_method:
+	case utils.UpdateMethod:
 		//
 		setArgs := c.parseUpdate()
+		whereArgs := c.ParseWhere()
 		if len(setArgs) > 0 {
-			c.sql.WriteString("update %s set %s where %s;")
-			args := []string{c.table, setArgs, args}
-			c.args = append(c.args, args...)
+			c.sql.WriteString("update `%s` set %s where %s;")
+			c.args = []any{c.table, setArgs, whereArgs}
 			//return fmt.Sprintf("update %s set %s where %s;", c.table, setArgs, args)
+			break
 		}
-		c.sql.WriteString("update %s set %s;")
-		args := []string{c.table, setArgs}
-		c.args = append(c.args, args...)
+		c.sql.WriteString("update `%s` set %s;")
+		c.args = []any{c.table, setArgs}
 		//return fmt.Sprintf("update %s set %s;", c.table, setArgs)
 	}
+	//fmt.Println(c.sql.String(), c.args)
+
 	return c.sql, c.args
 }
 
-func (c *Clause) parseSql() (string, string, string) {
+func (c *ClauseMysql) parseSql() (string, string) {
 	var (
-		fields string
-		values string
-		args   string
+		field  string
+		value  string
+		fields []string
+		values []string
+		//args   []any
 	)
-	fields = strings.Join(c.fields, ",")
-	values = strings.Join(c.values, ",")
-	args = strings.Join(c.whereArgs, ",")
-	return fields, values, args
+	for i, _ := range c.values {
+		f := c.fields[i]
+		v := c.values[i]
+
+		_v := utils.EscapeQuote(utils.AddString([]string{"'", v, "'"}))
+		values = append(values, _v)
+
+		_f := utils.EscapeQuote(utils.AddString([]string{"`", f, "`"}))
+		fields = append(fields, _f)
+
+	}
+	field = strings.Join(fields, ", ")
+	value = strings.Join(values, ", ")
+	//temp := strings.Join(c.whereArgs, ", ")
+	//args = []any{temp}
+
+	return field, value
 }
 
-func (c *Clause) parseUpdate() string {
+func (c *ClauseMysql) parseUpdate() string {
 	if len(c.fields) != len(c.values) {
 		panic("fields and values must equal")
 	}
 	var updateFields []string
 	for i, _ := range c.fields {
-		var updateField []string
-		updateField = append(updateField, c.fields[i])
-		updateField = append(updateField, "=")
-		updateField = append(updateField, c.values[i])
+		field := c.fields[i]
+		value := c.values[i]
+		field = utils.EscapeBackQuote(field)
+		value = utils.EscapeSingleQuote(value)
+		f := utils.AddString([]string{"`", field, "`"})
+		v := utils.AddString([]string{"'", value, "'"})
+		updateField := []string{f, "=", v}
 		uf := strings.Join(updateField, " ")
 		updateFields = append(updateFields, uf)
 	}
-	setArgs := strings.Join(updateFields, " ")
+
+	setArgs := strings.Join(updateFields, ", ")
 	return setArgs
+}
+
+func (c *ClauseMysql) ParseWhere() string {
+	args := strings.Join(c.whereArgs, " ")
+	return args
 }

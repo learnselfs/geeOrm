@@ -1,7 +1,7 @@
 // Package main @Author Bing
 // @Date 2023/11/16 16:25:00
 // @Desc
-package examples
+package main
 
 import (
 	"fmt"

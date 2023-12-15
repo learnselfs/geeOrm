@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/learnselfs/geeOrm/clause"
 	"github.com/learnselfs/geeOrm/dialect"
 	"github.com/learnselfs/geeOrm/utils"
 )
@@ -61,7 +62,8 @@ func NewEngine(dbType, username, password, hostname, database string, port int) 
 		return nil
 	}
 	d, _ := dialect.GetDialect(e.dbType)
-	e.session = NewSession(db, d)
+	c, _ := clause.GetClause(e.dbType)
+	e.session = NewSession(db, d, c)
 
 	return e
 }
