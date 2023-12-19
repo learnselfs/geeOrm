@@ -9,7 +9,7 @@ import (
 	"github.com/learnselfs/geeOrm/utils"
 )
 
-type user struct {
+type user1 struct {
 	id   int
 	name string
 	pass string
@@ -24,6 +24,6 @@ func main() {
 	}
 	var u user
 	fmt.Println(u)
-	row, _ := session.DB().Exec("select * from user")
+	row, _ := session.DB().Exec("select * from user1")
 	fmt.Println(row)
 }

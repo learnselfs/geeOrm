@@ -15,6 +15,38 @@ type user struct {
 	Password string
 }
 
+func (u *user) CreateBefore(s *core.Session) {
+	fmt.Println("CreateBefore")
+
+}
+
+func (u *user) CreateAfter(s *core.Session) {
+	fmt.Println("CreateAfter")
+}
+
+func (u *user) DeleteBefore(s *core.Session) {
+	fmt.Println("DeleteBefore")
+}
+
+func (u *user) DeleteAfter(s *core.Session) {
+	fmt.Println("DeleteAfter")
+}
+
+func (u *user) UpdateBefore(s *core.Session) {
+	fmt.Println("UpdateBefore")
+}
+
+func (u *user) UpdateAfter(s *core.Session) {
+	fmt.Println("UpdateAfter")
+}
+func (u *user) ReadBefore(s *core.Session) {
+	fmt.Println("ReadBefore")
+}
+
+func (u *user) ReadAfter(s *core.Session) {
+	fmt.Println("\nReadAfter\n")
+}
+
 var u *core.Session
 
 func main() {
@@ -25,10 +57,9 @@ func main() {
 		return
 	}
 	var uTable user
-	//row, _ := session.DB().Exec("select * from user")
 	u = session.Model(uTable)
-	//
-	//insert()
+
+	insert()
 
 	//find()
 	//selectOne()
@@ -36,7 +67,7 @@ func main() {
 
 	//update()
 
-	deleteOne()
+	//deleteOne()
 	//deleteAll()
 
 	//fmt.Println(strconv.Quote(`""`))
@@ -53,7 +84,6 @@ func insert() {
 	name := `u1'--#"`
 	pass := "p1"
 	u1 := user{Name: name, Password: pass}
-
 	u.Clause.Insert(u1)
 	u.Save()
 

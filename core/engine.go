@@ -24,10 +24,10 @@ type Engine struct {
 }
 
 func (e *Engine) newDb() (*sql.DB, error) {
-	db, err := sql.Open(e.dbType, e.dns)
+	db, _ := sql.Open(e.dbType, e.dns)
+	err := db.Ping()
 	if err != nil {
 		utils.ErrorLog.Printf("%s", err)
-		return nil, err
 	}
 	utils.InfoLog.Printf("connect [%s]%s success.", e.dbType, e.dns)
 	return db, nil

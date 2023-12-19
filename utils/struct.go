@@ -48,3 +48,19 @@ func ParseStructFieldValueUnsafe(s interface{}) ([]string, []string) {
 	}
 	return fields, values
 }
+func ParseAllStructFieldValueUnsafe(s interface{}) ([]string, []any) {
+	var fields []string
+	var values []any
+	v := reflect.ValueOf(s)
+	t := reflect.TypeOf(s)
+	switch v.Kind() {
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			_v := v.Field(i)
+			_t := t.Field(i)
+			fields = append(fields, _t.Name)
+			values = append(values, _v.Interface())
+		}
+	}
+	return fields, values
+}

@@ -27,7 +27,6 @@ func (s *Session) Row(f string, v ...any) *Session {
 }
 
 func (s *Session) Exec() (sql.Result, error) {
-	defer s.Clear()
 
 	row := fmt.Sprintf(s.sql.String(), s.args...)
 	utils.DebugLog.Printf("%s", row)
@@ -38,18 +37,20 @@ func (s *Session) Exec() (sql.Result, error) {
 
 func (s *Session) QueryRow() *sql.Row {
 	defer s.Clear()
-	s.sql, s.args = s.Clause.Query()
+	s.sql, s.args, s.Data, s.method = s.Clause.Query()
+	s.HookMethod(ReadBefore, s.schema.model)
 	raw := fmt.Sprintf(s.sql.String(), s.args...)
 	row := s.db.QueryRow(raw)
 	if row.Err() != nil {
 		utils.ErrorLog.Println(row.Err())
 	}
+	s.HookMethod(ReadAfter, s.schema.model)
 	return row
 }
 
 func (s *Session) QueryRows() *sql.Rows {
 	defer s.Clear()
-	s.sql, s.args = s.Clause.Query()
+	s.sql, s.args, s.Data, s.method = s.Clause.Query()
 	raw := fmt.Sprintf(s.sql.String(), s.args...)
 	utils.InfoLog.Println(raw)
 	row, err := s.db.Query(raw)
@@ -63,8 +64,9 @@ func (s *Session) Find(values interface{}) {
 	v := reflect.Indirect(reflect.ValueOf(values))
 	kind := v.Type().Elem()
 	table := s.Model(reflect.New(kind).Elem().Interface())
-	fieldNames, _ := utils.ParseStructFieldValueUnsafe(reflect.New(kind).Elem().Interface())
+	fieldNames, _ := utils.ParseAllStructFieldValueUnsafe(reflect.New(kind).Elem().Interface())
 	s.Clause.Select(fieldNames)
+	s.HookMethod(ReadBefore, s.schema.model)
 	rows := s.QueryRows()
 	defer rows.Close()
 	for rows.Next() {
@@ -75,9 +77,9 @@ func (s *Session) Find(values interface{}) {
 			fields = append(fields, value.FieldByName(field).Addr().Interface())
 		}
 		rows.Scan(fields...)
+		s.HookMethod(ReadAfter, value.Addr().Interface())
 		v.Set(reflect.Append(v, value))
 	}
-
 }
 
 func (s *Session) Save() {
@@ -86,8 +88,24 @@ func (s *Session) Save() {
 		res sql.Result
 		err error
 	)
-	s.sql, s.args = s.Clause.Query()
+	s.sql, s.args, s.Data, s.method = s.Clause.Query()
+	switch s.method {
+	case utils.InsertMethod:
+		s.HookMethod(CreateBefore, s.Data)
+	case utils.DeleteMethod:
+		s.HookMethod(DeleteBefore, s.schema.model)
+	case utils.UpdateMethod:
+		s.HookMethod(UpdateBefore, s.schema.model)
+	}
 	res, err = s.Exec()
+	switch s.method {
+	case utils.InsertMethod:
+		s.HookMethod(CreateAfter, s.Data)
+	case utils.DeleteMethod:
+		s.HookMethod(DeleteAfter, s.schema.model)
+	case utils.UpdateMethod:
+		s.HookMethod(UpdateAfter, s.schema.model)
+	}
 	if err != nil {
 		utils.ErrorLog.Println(err)
 		return
@@ -115,7 +133,7 @@ func (s *Session) Create() error {
 	return err
 }
 
-// drop table if exists tableName
+// Drop table if exists tableName
 func (s *Session) Drop() error {
 	table := s.schema
 	_, err := s.Row(fmt.Sprintf("drop table if exists %s;", table.Name)).Exec()

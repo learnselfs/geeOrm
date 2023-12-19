@@ -4,7 +4,6 @@
 package clause
 
 import (
-	"fmt"
 	"github.com/learnselfs/geeOrm/utils"
 	"strings"
 )
@@ -28,6 +27,8 @@ type ClauseMysql struct {
 	orderBy        string
 	sql            strings.Builder
 	args           []any
+	// models
+	insertModel interface{}
 }
 
 func (c *ClauseMysql) SetTable(table string) {
@@ -44,22 +45,8 @@ func (c *ClauseMysql) Clear() {
 
 func (c *ClauseMysql) Insert(s interface{}) Clause {
 	c.method = utils.InsertMethod
-	var fields []string
-	var values []string
-	fields, values = utils.ParseStructFieldValue(s)
-	//v := reflect.ValueOf(s)
-	//for i := 0; i < v.NumField(); i++ {
-	//	if reflect.DeepEqual(v.Field(i).Interface(), reflect.Zero(v.Field(i).Type()).Interface()) {
-	//		continue
-	//	}
-	//
-	//	fields = append(fields, v.Type().Field(i).Name)
-	//	values = append(values, v.Field(i).String())
-	//
-	//}
-	c.fields = fields
-	c.values = values
-
+	c.fields, c.values = utils.ParseStructFieldValueUnsafe(s)
+	c.insertModel = s
 	return c
 }
 
@@ -79,7 +66,6 @@ func (c *ClauseMysql) Update(s interface{}) Clause {
 	var fields []string
 	var values []string
 	fields, values = utils.ParseStructFieldValueUnsafe(s)
-	fmt.Println(fields, values)
 	c.fields = fields
 	c.values = values
 	return c
@@ -127,6 +113,7 @@ func (c *ClauseMysql) special(specialCondition, field, condition, value string) 
 	c.condition(field, condition, value)
 	return c
 }
+
 func (c *ClauseMysql) condition(field, condition, value string) Clause {
 	c.whereCondition = append(c.whereCondition, condition)
 	c.whereFields = append(c.whereFields, field)
@@ -139,11 +126,12 @@ func (c *ClauseMysql) condition(field, condition, value string) Clause {
 	return c
 }
 
-func (c *ClauseMysql) Query() (strings.Builder, []any) {
+func (c *ClauseMysql) Query() (strings.Builder, []any, any, int) {
 	defer c.Clear()
 	var (
 		fields string
 		values string
+		model  any
 	)
 	fields, values = c.parseSql()
 	switch c.method {
@@ -153,7 +141,7 @@ func (c *ClauseMysql) Query() (strings.Builder, []any) {
 		args := []any{c.table, fields, values}
 		c.args = append(c.args, args...)
 		//return fmt.Sprintf("insert into %s(%s) values(%s);", c.table, fields, values)
-
+		model = c.insertModel
 	case utils.DeleteMethod:
 		// delete from #{c.table} where #{c.whereArgs}
 		if len(c.whereArgs) > 0 {
@@ -179,7 +167,7 @@ func (c *ClauseMysql) Query() (strings.Builder, []any) {
 			break
 		}
 
-		c.sql.WriteString("select %s from %s;")
+		c.sql.WriteString("select %s from `%s`;")
 		args := []any{fields, c.table}
 		c.args = append(c.args, args...)
 		//return fmt.Sprintf("select %s from %s;", fields, c.table)
@@ -200,7 +188,7 @@ func (c *ClauseMysql) Query() (strings.Builder, []any) {
 	}
 	//fmt.Println(c.sql.String(), c.args)
 
-	return c.sql, c.args
+	return c.sql, c.args, model, c.method
 }
 
 func (c *ClauseMysql) parseSql() (string, string) {
@@ -212,15 +200,14 @@ func (c *ClauseMysql) parseSql() (string, string) {
 		//args   []any
 	)
 	for i, _ := range c.values {
-		f := c.fields[i]
 		v := c.values[i]
-
-		_v := utils.EscapeQuote(utils.AddString([]string{"'", v, "'"}))
+		_v := utils.AddString([]string{"'", utils.EscapeQuote(v), "'"})
 		values = append(values, _v)
-
-		_f := utils.EscapeQuote(utils.AddString([]string{"`", f, "`"}))
+	}
+	for i, _ := range c.fields {
+		f := c.fields[i]
+		_f := utils.AddString([]string{"`", utils.EscapeQuote(f), "`"})
 		fields = append(fields, _f)
-
 	}
 	field = strings.Join(fields, ", ")
 	value = strings.Join(values, ", ")

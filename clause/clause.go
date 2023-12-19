@@ -7,7 +7,7 @@ import "strings"
 
 type Clause interface {
 	SetTable(table string)
-	Query() (strings.Builder, []any)
+	Query() (strings.Builder, []any, any, int)
 	Insert(interface{}) Clause
 	Delete() Clause
 	Select(fields []string) Clause
