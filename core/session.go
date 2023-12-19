@@ -11,10 +11,11 @@ import (
 )
 
 type Session struct {
+	clause.Clause
 	db      *sql.DB
+	tx      *sql.Tx
 	dialect dialect.Dialect
 	schema  *Schema
-	Clause  clause.Clause
 	method  int
 	sql     strings.Builder
 	args    []interface{}
@@ -31,7 +32,19 @@ func (s *Session) Clear() {
 	s.args = make([]interface{}, 0)
 }
 
-func (s *Session) DB() *sql.DB {
+type CommonDB interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
+var _ CommonDB = (*sql.DB)(nil)
+var _ CommonDB = (*sql.Tx)(nil)
+
+func (s *Session) DB() CommonDB {
+	if s.tx != nil {
+		return s.tx
+	}
 	return s.db
 }
 

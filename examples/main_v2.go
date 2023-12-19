@@ -9,12 +9,11 @@ import (
 	"github.com/learnselfs/geeOrm/utils"
 )
 
-type user struct {
-	Id       int
-	Name     string
-	Password string
-}
-
+//	type user struct {
+//		Id       int
+//		Name     string
+//		Password string
+//	}
 func (u *user) CreateBefore(s *core.Session) {
 	fmt.Println("CreateBefore")
 

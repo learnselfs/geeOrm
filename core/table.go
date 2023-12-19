@@ -30,7 +30,7 @@ func (s *Session) Exec() (sql.Result, error) {
 
 	row := fmt.Sprintf(s.sql.String(), s.args...)
 	utils.DebugLog.Printf("%s", row)
-	res, err := s.db.Exec(row)
+	res, err := s.DB().Exec(row)
 
 	return res, err
 }
@@ -40,7 +40,7 @@ func (s *Session) QueryRow() *sql.Row {
 	s.sql, s.args, s.Data, s.method = s.Clause.Query()
 	s.HookMethod(ReadBefore, s.schema.model)
 	raw := fmt.Sprintf(s.sql.String(), s.args...)
-	row := s.db.QueryRow(raw)
+	row := s.DB().QueryRow(raw)
 	if row.Err() != nil {
 		utils.ErrorLog.Println(row.Err())
 	}
@@ -53,7 +53,7 @@ func (s *Session) QueryRows() *sql.Rows {
 	s.sql, s.args, s.Data, s.method = s.Clause.Query()
 	raw := fmt.Sprintf(s.sql.String(), s.args...)
 	utils.InfoLog.Println(raw)
-	row, err := s.db.Query(raw)
+	row, err := s.DB().Query(raw)
 	if err != nil {
 		utils.ErrorLog.Println(err)
 	}
