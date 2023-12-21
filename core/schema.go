@@ -5,24 +5,24 @@ package core
 
 import (
 	"github.com/learnselfs/geeOrm/dialect"
-	"github.com/learnselfs/geeOrm/utils"
+	"github.com/learnselfs/geeOrm/schema"
 	"reflect"
 )
 
 type Schema struct {
 	model       interface{}
 	Name        string
-	Columns     []*Column
+	Columns     []*schema.Column
 	ColumnNames []string
-	ColumnMap   map[string]*Column
+	ColumnMap   map[string]*schema.Column
 }
 
 func newSchema(model interface{}) *Schema {
 	t := reflect.Indirect(reflect.ValueOf(model)).Type()
-	return &Schema{model: model, Name: t.Name(), ColumnNames: make([]string, 0), ColumnMap: make(map[string]*Column)}
+	return &Schema{model: model, Name: t.Name(), ColumnNames: make([]string, 0), ColumnMap: make(map[string]*schema.Column)}
 }
 
-func (s *Schema) Column(name string) *Column {
+func (s *Schema) Column(name string) *schema.Column {
 	return s.ColumnMap[name]
 }
 
@@ -32,7 +32,7 @@ func Parser(model interface{}, d dialect.Dialect) *Schema {
 	for i := 0; i < t.NumField(); i++ {
 		p := t.Field(i)
 		_type := d.TypeOf(reflect.Indirect(reflect.ValueOf(p.Type)))
-		column := NewColumn(p.Name, _type, "")
+		column := schema.NewColumn(p.Name, _type, "")
 		if tag := p.Tag.Get("orm"); len(tag) > 0 {
 			column.Tag = tag
 		}
@@ -41,14 +41,4 @@ func Parser(model interface{}, d dialect.Dialect) *Schema {
 		S.ColumnMap[p.Name] = column
 	}
 	return S
-}
-
-type Column struct {
-	Name string
-	Type utils.DataType
-	Tag  string
-}
-
-func NewColumn(name string, t utils.DataType, tag string) *Column {
-	return &Column{name, t, tag}
 }

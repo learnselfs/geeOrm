@@ -8,26 +8,10 @@ import (
 )
 
 func AddString(s []string) string {
-	//var str strings.Builder
-	//for _, v := range s {
-	//	str.WriteString(v)
-	//}
-	//return str.String()
-	return AddSpaceString(s, "")
-}
-func AddCommaString(s []string) string {
-	return AddSpaceString(s, ", ")
-}
-func AddBlankString(s []string) string {
-	return AddSpaceString(s, " ")
-}
-func AddSpaceString(s []string, space string) string {
 	var str strings.Builder
-	for i := 0; i < len(s)-1; i++ {
-		str.WriteString(s[i])
-		str.WriteString(space)
+	for _, v := range s {
+		str.WriteString(v)
 	}
-	str.WriteString(s[len(s)-1])
 	return str.String()
 }
 
