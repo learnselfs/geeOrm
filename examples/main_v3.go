@@ -5,6 +5,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/learnselfs/geeOrm/core"
 )
 
@@ -18,6 +19,7 @@ type user struct {
 	Id       int
 	Name     string
 	Password string
+	Age      int
 }
 
 func init() {
@@ -38,7 +40,11 @@ func crud(s *core.Session) (any, error) {
 
 func main() {
 	var u user
-	t := session.Model(u)
+	//t := session.Model(u)
+	//t.Transaction(crud)
+	err := engine.Migrate(u)
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	t.Transaction(crud)
 }
