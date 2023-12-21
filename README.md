@@ -68,7 +68,10 @@ git clone https://github.com/learnselfs/geeOrm.git
 eg:
 
 ```
+├─clause # sql 插件
 ├─core  # 核心
+├─dialect # sql 类型
+├─examples # 示例
 ├─test  # 测试和示例
 └─utils # 工具
 ```
@@ -77,7 +80,7 @@ eg:
 请阅读[ARCHITECTURE.md](https://github.com/learnselfs/geeOrm/blob/master/ARCHITECTURE.md) 查阅为该项目的架构。
 
 ### 部署
-暂无
+建议参考 examples
 
 ### 使用到的框架
 - [mysql](https://github.com/go-sql-driver/mysql)
